@@ -1,0 +1,83 @@
+version: '3'
+services:
+
+  jupyter:
+    image: jupyter/all-spark-notebook
+    container_name: jupyter
+    ports:
+      - "8889:8888"
+      - "4040:4040"
+      - "4041:4041"
+    expose:
+      - "9999"
+    command: start-notebook.sh --NotebookApp.token=''
+    volumes:
+      - ./dataset:/home/jovyan/dataset
+      - ./spark:/home/jovyan/spark
+    links:
+      - mysql
+      - master
+  
+  python3:
+    image: orozcohsu/alpine-py3-pandas-nltk
+    container_name: python3
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./python:/root/python 
+      - exchange-hdfs:/root/exchange-hdfs
+
+  HDP-master:
+    image: orozcohsu/ha-sp-ze-zo-hi-fl:v7
+    container_name: master
+    hostname: master
+    environment:
+      - "NODE_TYPE=master"
+    expose:
+      - "50070"
+      - "9000"
+    ports:
+      - "8088:8088"
+      - "50070:50070"
+      - "9000:9000"
+      - "2222:22"
+      - "8080:8080"
+      - "18080:18080"
+      - "10000:10000"
+      - "10002:10002"
+      - "9083:9083"
+    volumes:
+      - /tmp/docker-cluster-hadoop-name/:/data/dfs/name/
+      - /tmp/docker-cluster-hadoop-data/:/data/dfs/data/
+      - /tmp/docker-cluster-hadoop-logs/:/usr/local/hadoop/logs/
+      - /tmp/docker-cluster-zookeeper-logs/:/var/log/zookeeper/
+      - /tmp/docker-cluster-zeppelin-logs/:/usr/local/zeppelin/log
+      - ./mapreduce:/root/mapreduce
+  HDP-slave1:
+    image: lewuathe/hadoop-slave
+    container_name: slave1
+    depends_on:
+      - master
+    ports:
+      - "9901:9864"
+      - "8041:8042"
+  HDP-slave2:
+    image: lewuathe/hadoop-slave
+    container_name: slave2
+    depends_on:
+      - master
+    ports:
+      - "9902:9864"
+      - "8042:8042"
+      
+
+
+volumes:
+  es7data1:
+    driver: local
+  es7data2:
+    driver: local
+  exchange-hdfs:
+  
+networks:
+  es7net:
